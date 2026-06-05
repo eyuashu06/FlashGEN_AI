@@ -1,0 +1,153 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Global Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Schema Invariant Blueprints ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'email', 'createdAt', 'streakCount', 'lastStudyDate']) 
+        && data.keys().size() == 5
+        && data.userId == request.auth.uid
+        && data.email is string 
+        && data.email.size() <= 200
+        && data.createdAt is string
+        && data.streakCount is int
+        && data.lastStudyDate is string;
+    }
+
+    function isValidDeck(data) {
+      return data.keys().hasAll(['deckId', 'userId', 'title', 'description', 'cardCount', 'sourceName', 'createdAt', 'updatedAt'])
+        && data.keys().size() == 8
+        && data.deckId is string
+        && data.userId == request.auth.uid
+        && data.title is string
+        && data.title.size() <= 150
+        && data.description is string
+        && data.description.size() <= 800
+        && data.cardCount is int
+        && data.sourceName is string
+        && data.createdAt is string
+        && data.updatedAt is string;
+    }
+
+    function isValidCard(data) {
+      return data.keys().hasAll(['cardId', 'deckId', 'userId', 'front', 'back', 'createdAt', 'updatedAt', 'repetition', 'interval', 'efactor', 'nextReviewDate'])
+        && data.keys().size() == 11
+        && data.cardId is string
+        && data.deckId is string
+        && data.userId == request.auth.uid
+        && data.front is string
+        && data.front.size() <= 1500
+        && data.back is string
+        && data.back.size() <= 5000
+        && data.createdAt is string
+        && data.updatedAt is string
+        && data.repetition is int
+        && data.interval is int
+        && (data.efactor is float || data.efactor is int)
+        && data.nextReviewDate is string;
+    }
+
+    function isValidStudySession(data) {
+      return data.keys().hasAll(['sessionId', 'userId', 'deckId', 'startTime', 'endTime', 'cardsReviewed', 'correctAnswers'])
+        && data.keys().size() == 7
+        && data.sessionId is string
+        && data.userId == request.auth.uid
+        && data.deckId is string
+        && data.startTime is string
+        && data.endTime is string
+        && data.cardsReviewed is int
+        && data.correctAnswers is int;
+    }
+
+    // --- Collections ---
+
+    match /user_profiles/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) 
+        && isValidUserProfile(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['streakCount', 'lastStudyDate']);
+      allow delete: if false; // Profiles are permanent records
+    }
+
+    match /decks/{deckId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidId(deckId) 
+        && isValidDeck(request.resource.data) 
+        && request.resource.data.deckId == deckId;
+        
+      allow update: if isSignedIn() 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid 
+        && isValidDeck(request.resource.data)
+        && (
+          // Action 1: Update metadata title/desc
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'updatedAt']) ||
+          // Action 2: Incremental count update
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cardCount', 'updatedAt'])
+        );
+        
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      // Nested cards subcollection
+      match /cards/{cardId} {
+        allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+        allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+        
+        allow create: if isSignedIn() 
+          && isValidId(cardId) 
+          && isValidCard(request.resource.data) 
+          && request.resource.data.cardId == cardId
+          // Prove parent relational deck is indeed owned by creating user
+          && get(/databases/$(database)/documents/decks/$(deckId)).data.userId == request.auth.uid;
+          
+        allow update: if isSignedIn() 
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.userId == request.auth.uid
+          && isValidCard(request.resource.data)
+          && (
+            // Action 1: Edit visual front/back
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['front', 'back', 'updatedAt']) ||
+            // Action 2: Record repetition score (SM2 scheduling indices update)
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['repetition', 'interval', 'efactor', 'nextReviewDate', 'updatedAt'])
+          );
+          
+        allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      }
+    }
+
+    match /study_sessions/{sessionId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidId(sessionId) 
+        && isValidStudySession(request.resource.data)
+        && request.resource.data.sessionId == sessionId;
+        
+      allow update: if false; // Sessions are write-once records
+      allow delete: if false;
+    }
+  }
+}
