@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with study statistics and streak tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The unique Firebase Auth user ID" },
+        "email": { "type": "string", "description": "User email address" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the profile was created" },
+        "streakCount": { "type": "integer", "description": "Current daily study streak count" },
+        "lastStudyDate": { "type": "string", "description": "ISO date (YYYY-MM-DD) of last study" }
+      },
+      "required": ["userId", "email", "createdAt", "streakCount", "lastStudyDate"]
+    },
+    "Deck": {
+      "title": "Deck",
+      "description": "A study deck of flashcards generated from PDFs or input",
+      "type": "object",
+      "properties": {
+        "deckId": { "type": "string", "description": "Unique identifier of the study deck" },
+        "userId": { "type": "string", "description": "ID of the user who owns the deck" },
+        "title": { "type": "string", "description": "Title of the deck" },
+        "description": { "type": "string", "description": "Detailed description of the deck content" },
+        "cardCount": { "type": "integer", "description": "Total number of flashcards in this deck" },
+        "sourceName": { "type": "string", "description": "Name of the uploaded PDF or source document" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
+      },
+      "required": ["deckId", "userId", "title", "description", "cardCount", "sourceName", "createdAt", "updatedAt"]
+    },
+    "Card": {
+      "title": "Card",
+      "description": "An individual flashcard within a deck, using spaced repetition indices",
+      "type": "object",
+      "properties": {
+        "cardId": { "type": "string", "description": "Unique card identifier" },
+        "deckId": { "type": "string", "description": "Identifier of the deck this card belongs to" },
+        "userId": { "type": "string", "description": "ID of the user who owns this card" },
+        "front": { "type": "string", "description": "Front content of the flashcard (question/term)" },
+        "back": { "type": "string", "description": "Back content of the flashcard (answer/definition)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the card was created" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the card was last edited" },
+        "repetition": { "type": "integer", "description": "Spaced repetition count for SM-2 Algorithm" },
+        "interval": { "type": "integer", "description": "Interval in days before next review" },
+        "efactor": { "type": "number", "description": "Easiness factor used by the SM-2 algorithm" },
+        "nextReviewDate": { "type": "string", "format": "date-time", "description": "When the card should be reviewed next" }
+      },
+      "required": ["cardId", "deckId", "userId", "front", "back", "createdAt", "updatedAt", "repetition", "interval", "efactor", "nextReviewDate"]
+    },
+    "StudySession": {
+      "title": "StudySession",
+      "description": "A record of a deck being studied by a user",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string", "description": "Unique identifier of the study session" },
+        "userId": { "type": "string", "description": "User who studied" },
+        "deckId": { "type": "string", "description": "Deck that was studied" },
+        "startTime": { "type": "string", "format": "date-time", "description": "Start timestamp of the study session" },
+        "endTime": { "type": "string", "format": "date-time", "description": "End timestamp of the study session" },
+        "cardsReviewed": { "type": "integer", "description": "Number of cards reviewed in this session" },
+        "correctAnswers": { "type": "integer", "description": "Number of correct answers" }
+      },
+      "required": ["sessionId", "userId", "deckId", "startTime", "endTime", "cardsReviewed", "correctAnswers"]
+    }
+  },
+  "firestore": {
+    "/user_profiles/{userId}": {
+      "schema": "UserProfile",
+      "description": "Global user profiles tracking streaks"
+    },
+    "/decks/{deckId}": {
+      "schema": "Deck",
+      "description": "User study decks"
+    },
+    "/decks/{deckId}/cards/{cardId}": {
+      "schema": "Card",
+      "description": "Cards stored within a specific deck"
+    },
+    "/study_sessions/{sessionId}": {
+      "schema": "StudySession",
+      "description": "Logged study session history"
+    }
+  }
+}
