@@ -1,14 +1,14 @@
+import dotenv from "dotenv";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import dotenv from "dotenv";
+
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
-
 // Body parsing with safe size limits for pasted content
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
