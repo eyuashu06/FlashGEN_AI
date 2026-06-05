@@ -1,0 +1,6 @@
+{
+  "name": "AI Flashcards",
+  "description": "Auto-generate spaced-repetition study decks and flashcards from uploaded PDFs or text documents using secure server-side Google Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
