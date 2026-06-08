@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // --- Hardened Global Helpers ---
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
     function isOwner(uid) {
@@ -84,7 +84,12 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
       allow update: if isOwner(userId) 
         && isValidUserProfile(request.resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['streakCount', 'lastStudyDate']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['streakCount', 'lastStudyDate'])
+        && (
+          request.resource.data.streakCount == resource.data.streakCount + 1 ||
+          request.resource.data.streakCount == 1 ||
+          request.resource.data.streakCount == resource.data.streakCount
+        );
       allow delete: if false; // Profiles are permanent records
     }
 
