@@ -244,7 +244,7 @@ export const DeckListTab: React.FC<DeckListTabProps> = ({ onStartStudy }) => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-505 mb-1 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
                   Front Side (Question, formula or concept) *
                 </label>
                 <textarea
@@ -258,7 +258,7 @@ export const DeckListTab: React.FC<DeckListTabProps> = ({ onStartStudy }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-505 mb-1 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
                   Back Side (Core answer definition or details) *
                 </label>
                 <textarea
