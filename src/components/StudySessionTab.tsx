@@ -24,24 +24,20 @@ export const StudySessionTab: React.FC<StudySessionTabProps> = ({ deckId, onExit
   const activeDeck = decks.find((d) => d.deckId === deckId);
   const now = new Date();
 
-  // Populate cards queue based on study preferences
+  // Populate cards queue and reset session when deck or study mode changes
   useEffect(() => {
     const deckCards = cards.filter((c) => c.deckId === deckId);
+    const queue = studyAll
+      ? deckCards
+      : deckCards.filter((c) => new Date(c.nextReviewDate) <= now);
 
-    if (studyAll) {
-      setSessionCards(deckCards);
-    } else {
-      const due = deckCards.filter((c) => new Date(c.nextReviewDate) <= now);
-      setSessionCards(due);
-    }
-  }, [deckId, studyAll, cards]);
-  useEffect(() => {
-      setCurrentIndex(0);
+    setSessionCards(queue);
+    setCurrentIndex(0);
     setIsFlipped(false);
     setIsCompleted(false);
     setCardsCorrect(0);
     setTotalReviewed(0);
-  },[deckId, studyAll, cards]);
+  }, [deckId, studyAll]);
 
   if (!activeDeck) {
     return (
@@ -226,7 +222,7 @@ export const StudySessionTab: React.FC<StudySessionTabProps> = ({ deckId, onExit
               <div className="absolute top-4 left-4">
                 <span
                   className={`text-[9px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-full ${
-                    isFlipped ? "bg-teal-50 text-teal-600" : "bg-indigo-55 bg-slate-100 text-slate-500"
+                    isFlipped ? "bg-teal-50 text-teal-600" : "bg-slate-100 text-slate-500"
                   }`}
                 >
                   {isFlipped ? "BAck Side (Answer)" : "Front Side (Question)"}
