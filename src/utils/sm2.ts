@@ -25,7 +25,7 @@ export function calculateSM2(
     } else if (repetition === 1) {
       interval = 6; // 6 days
     } else {
-      interval = Math.ceil(prevInterval * efactor);
+      interval = Math.round(prevInterval * efactor);
     }
     repetition += 1;
   } else {
