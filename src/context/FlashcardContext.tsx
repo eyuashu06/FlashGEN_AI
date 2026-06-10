@@ -455,39 +455,41 @@ export const FlashcardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     // Streak increment calculations on Profile
-    const todayISO = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    const lastISO = profile.lastStudyDate;
+    if (cardsReviewed >= 5) {
+      const todayISO = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      const lastISO = profile.lastStudyDate;
 
-    let nextStreak = profile.streakCount;
+      let nextStreak = profile.streakCount;
 
-    if (lastISO !== todayISO) {
-      if (!lastISO) {
-        nextStreak = 1;
-      } else {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayISO = yesterday.toISOString().split("T")[0];
-
-        if (lastISO === yesterdayISO) {
-          nextStreak += 1;
+      if (lastISO !== todayISO) {
+        if (!lastISO) {
+          nextStreak = 1;
         } else {
-          nextStreak = 1; // broken streak reset
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayISO = yesterday.toISOString().split("T")[0];
+
+          if (lastISO === yesterdayISO) {
+            nextStreak += 1;
+          } else {
+            nextStreak = 1; // broken streak reset
+          }
         }
+
+        // Sync Profile changes directly to Firestore
+        const profileUpdate = {
+          streakCount: nextStreak,
+          lastStudyDate: todayISO,
+        };
+
+        try {
+          await updateDoc(doc(db, "user_profiles", user.uid), profileUpdate);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `user_profiles/${user.uid}`);
+        }
+
+        setProfile((prev) => prev ? { ...prev, ...profileUpdate } : null);
       }
-
-      // Sync Profile changes directly to Firestore
-      const profileUpdate = {
-        streakCount: nextStreak,
-        lastStudyDate: todayISO,
-      };
-
-      try {
-        await updateDoc(doc(db, "user_profiles", user.uid), profileUpdate);
-      } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, `user_profiles/${user.uid}`);
-      }
-
-      setProfile((prev) => prev ? { ...prev, ...profileUpdate } : null);
     }
   };
 
