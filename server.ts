@@ -90,7 +90,13 @@ Please output exactly ${cardCount} flashcards.`;
       throw new Error("No flashcards returned from Gemini model.");
     }
 
-    const cards = JSON.parse(generatedText);
+    const cleanedText = generatedText
+      .trim()
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/, "");
+
+    const cards = JSON.parse(cleanedText);
     res.json({ cards });
   } catch (error: any) {
     console.error("AI Generation Error:", error);

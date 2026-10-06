@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FlashcardProvider, useFlashcards } from "./context/FlashcardContext";
 import { StatsOverview } from "./components/StatsOverview";
 import { DeckListTab } from "./components/DeckListTab";
@@ -16,7 +16,9 @@ import {
   ShieldCheck, 
   Cpu, 
   ArrowUpRight,
-  AlertTriangle 
+  AlertTriangle,
+  Sun,
+  Moon 
 } from "lucide-react";
 
 function AppContent() {
@@ -35,18 +37,41 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<"library" | "generate">("library");
   const [activeStudyDeckId, setActiveStudyDeckId] = useState<string | null>(null);
 
+  // Night Mode state management
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return (
+        localStorage.getItem("theme") === "dark" ||
+        (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      );
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDark]);
+
+  const toggleTheme = () => setIsDark((prev) => !prev);
+
   const now = new Date();
   const totalDueCount = cards.filter((card) => new Date(card.nextReviewDate) <= now).length;
 
   // 1. Loading State
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 transition-colors">
         <div className="relative w-12 h-12 mb-4">
-          <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-slate-200 dark:border-slate-800 rounded-full"></div>
           <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <p className="text-sm font-semibold text-slate-500 font-mono tracking-widest uppercase">
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 font-mono tracking-widest uppercase">
           Restoring Space recall states...
         </p>
       </div>
@@ -56,60 +81,66 @@ function AppContent() {
   // 2. Unauthenticated State (Landing screen with Google login)
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col justify-between selection:bg-indigo-100">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-indigo-100 dark:selection:bg-indigo-900 transition-colors">
         {/* Welcome Header */}
-        <header className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between border-b border-slate-100">
+        <header className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-sm">
               <Brain className="w-5.5 h-5.5" />
             </div>
             <div>
-              <span className="text-lg font-black text-slate-900 tracking-tight block leading-tight">
+              <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight block leading-tight">
                 RecallAI
               </span>
-              <span className="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider block">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-bold uppercase tracking-wider block">
                 SM-2 Active Learning
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-            <span>DATABASE ENABLED</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-200/60 dark:border-slate-800"
+              title={isDark ? "Switch to Light Mode" : "Switch to Night Mode"}
+            >
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{isDark ? "Light Mode" : "Night Mode"}</span>
+            </button>
           </div>
         </header>
 
         {/* Hero Section with balanced negative space */}
         <main className="max-w-4xl mx-auto px-4 py-12 sm:py-20 text-center space-y-10">
           <div className="space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold rounded-full uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-full uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-indigo-500 fill-indigo-500" />
               Secure Cognitive Flashcard Extraction
             </span>
-            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-tight">
+            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
               Master complex topics with <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-teal-500">spaced repetition</span>.
             </h1>
-            <p className="text-md sm:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-md sm:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
               Drop study notes, outlines, or textbook PDFs into our intelligence extraction workspace. We'll automatically build active-recall decks backed by secure Firestore databases.
             </p>
           </div>
 
           {/* Auth Error Banner */}
           {authError && (
-            <div className="max-w-2xl mx-auto p-4 bg-amber-50 border border-amber-200 rounded-2xl text-left shadow-sm space-y-2">
+            <div className="max-w-2xl mx-auto p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-2xl text-left shadow-sm space-y-2">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 font-bold text-sm">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
                   <span>Authentication Notice</span>
                 </div>
                 <button 
                   onClick={clearAuthError}
-                  className="text-amber-600 hover:text-amber-800 text-xs font-bold cursor-pointer"
+                  className="text-amber-600 dark:text-amber-400 hover:text-amber-800 text-xs font-bold cursor-pointer"
                 >
                   Dismiss
                 </button>
               </div>
-              <p className="text-xs text-amber-900 leading-relaxed font-sans font-medium">
+              <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-sans font-medium">
                 {authError}
               </p>
               <div className="pt-1 flex items-center gap-3">
@@ -125,63 +156,54 @@ function AppContent() {
 
           {/* Core App Features Display */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left max-w-3xl mx-auto">
-            <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-3xs space-y-2">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-3xs space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                 <Brain className="w-4 h-4" />
               </div>
-              <h3 className="font-bold text-slate-800 text-sm">SuperMemo-2 Scaling</h3>
-              <p className="text-xs text-slate-400 leading-normal">
+              <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">SuperMemo-2 Scaling</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 leading-normal">
                 Optimized reviews scheduled according to retention difficulty logs.
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-3xs space-y-2">
-              <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-3xs space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950 flex items-center justify-center text-teal-600 dark:text-teal-400">
                 <ShieldCheck className="w-4 h-4" />
               </div>
-              <h3 className="font-bold text-slate-800 text-sm">Zero-Trust Rules</h3>
-              <p className="text-xs text-slate-400 leading-normal">
+              <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Zero-Trust Rules</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 leading-normal">
                 Your flashcard collections remain secure with private owner keys in Cloud Firestore.
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-3xs space-y-2">
-              <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center text-rose-500">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-3xs space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-950 flex items-center justify-center text-rose-500 dark:text-rose-400">
                 <Flame className="w-4 h-4" />
               </div>
-              <h3 className="font-bold text-slate-800 text-sm">Consistent Streaks</h3>
-              <p className="text-xs text-slate-400 leading-normal">
+              <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Consistent Streaks</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 leading-normal">
                 Build study consistency habits with cloud gamified streak calendar metrics.
               </p>
             </div>
           </div>
 
-          {/* Action Trigger button */}
+          {/* Single Action Trigger button */}
           <div className="pt-2 flex flex-col items-center gap-3">
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                onClick={loginWithGoogle}
-                className="inline-flex items-center gap-2.5 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer group"
-              >
-                Sign In with Google
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button
-                onClick={loginWithRedirect}
-                className="inline-flex items-center gap-2 px-5 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-sm shadow-xs transition-all cursor-pointer"
-                title="Use page redirect for sign-in if popups are blocked"
-              >
-                Sign In (Redirect)
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1 font-mono">
-              Supports secure popup & redirect sign-in modes. No credit cards required.
+            <button
+              onClick={loginWithGoogle}
+              className="inline-flex items-center gap-2.5 px-8 py-4 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer group"
+            >
+              Sign In with Google
+              <ArrowRight className="w-4 h-4 text-slate-400 dark:text-indigo-200 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono">
+              Secure Google authentication. No credit cards required.
             </p>
           </div>
         </main>
 
-        <footer className="h-16 py-4 text-center text-xs text-slate-400 border-t border-slate-100 flex items-center justify-center">
-          <p>© 2026 RecallAI. Developed with server-side Google Gemini models.</p>
+        <footer className="h-16 py-4 text-center text-xs text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center">
+          <p>© 2026 RecallAI. All rights reserved.</p>
         </footer>
       </div>
     );
@@ -189,9 +211,9 @@ function AppContent() {
 
   // 3. Authenticated Workspace
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-indigo-100">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-indigo-100 dark:selection:bg-indigo-900 transition-colors">
       {/* Top Main Navigation Bar */}
-      <header className="sticky top-0 bg-white/85 backdrop-blur-md border-b border-slate-200/80 z-10 shadow-3xs">
+      <header className="sticky top-0 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-10 shadow-3xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo Brand */}
           <div className="flex items-center gap-2">
@@ -199,10 +221,10 @@ function AppContent() {
               <Brain className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-lg font-black text-slate-900 tracking-tight block leading-tight font-sans">
+              <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight block leading-tight font-sans">
                 RecallAI
               </span>
-              <span className="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider block">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-bold uppercase tracking-wider block">
                 SM-2 Spaced Recall
               </span>
             </div>
@@ -210,13 +232,13 @@ function AppContent() {
 
           {/* Nav Links */}
           {!activeStudyDeckId && (
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => setActiveTab("library")}
                 className={`px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
                   activeTab === "library"
-                    ? "bg-white text-slate-900 font-extrabold shadow-sm"
-                    : "text-slate-500 hover:text-slate-850"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-extrabold shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200"
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -231,8 +253,8 @@ function AppContent() {
                 onClick={() => setActiveTab("generate")}
                 className={`px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
                   activeTab === "generate"
-                    ? "bg-white text-slate-900 font-extrabold shadow-sm"
-                    : "text-slate-500 hover:text-slate-850"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-extrabold shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200"
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
@@ -241,20 +263,29 @@ function AppContent() {
             </div>
           )}
 
-          {/* Profile pill info & Logout */}
-          <div className="flex items-center gap-4">
+          {/* Profile pill info, Night Mode switch & Logout */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              title={isDark ? "Switch to Light Mode" : "Switch to Night Mode"}
+            >
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              <span className="hidden sm:inline text-xs font-medium text-slate-600 dark:text-slate-300">{isDark ? "Light" : "Night"}</span>
+            </button>
+
             <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-bold text-slate-800 truncate max-w-[150px]">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">
                 {profile?.email || user.email}
               </span>
-              <span className="text-[9px] text-slate-400 font-mono uppercase tracking-tight">
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono uppercase tracking-tight">
                 Recall Strategist
               </span>
             </div>
             
             <button
               onClick={logout}
-              className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+              className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -281,10 +312,10 @@ function AppContent() {
             <StatsOverview />
 
             {/* Quick alert helper details */}
-            <div className="bg-blue-50 border border-blue-100 p-3.5 rounded-2xl flex items-start gap-2.5 text-slate-700">
+            <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 p-3.5 rounded-2xl flex items-start gap-2.5 text-slate-700 dark:text-slate-300">
               <Info className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
-              <p className="text-xs leading-relaxed font-sans font-medium text-slate-600">
-                <span className="font-bold text-slate-800">Spacing Science Tip:</span> Cards scored <span className="font-extrabold text-slate-800">3</span> difficulty or higher are successfully review-scheduled for spaced multiplication intervals. Anything less than <span className="font-extrabold text-slate-800">3</span> resets repetition cycles and schedules reviews immediately for tomorrow to ensure retention. All your modifications sync in real time with Cloud Firestore.
+              <p className="text-xs leading-relaxed font-sans font-medium text-slate-600 dark:text-slate-300">
+                <span className="font-bold text-slate-800 dark:text-slate-100">Spacing Science Tip:</span> Cards scored <span className="font-extrabold text-slate-800 dark:text-white">3</span> difficulty or higher are successfully review-scheduled for spaced multiplication intervals. Anything less than <span className="font-extrabold text-slate-800 dark:text-white">3</span> resets repetition cycles and schedules reviews immediately for tomorrow to ensure retention. All your modifications sync in real time with Cloud Firestore.
               </p>
             </div>
 
@@ -303,15 +334,13 @@ function AppContent() {
       </main>
 
       {/* Static Humanized Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 mt-16 text-center text-xs text-slate-400 font-sans">
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-16 text-center text-xs text-slate-400 dark:text-slate-500 font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© 2026 RecallAI. Cognitive spaced active-recall engine.</p>
           <div className="flex gap-4 font-mono text-[10px] uppercase">
             <span className="flex items-center gap-1">
-              Cloud Status: <b className="text-emerald-500">● Synced</b>
+              Status: <b className="text-emerald-500">● Active</b>
             </span>
-            <span>|</span>
-            <span>Google AI Studio Powered</span>
           </div>
         </div>
       </footer>

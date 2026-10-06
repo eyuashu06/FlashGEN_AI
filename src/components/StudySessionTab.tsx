@@ -24,7 +24,7 @@ export const StudySessionTab: React.FC<StudySessionTabProps> = ({ deckId, onExit
   const activeDeck = decks.find((d) => d.deckId === deckId);
   const now = new Date();
 
-  // Populate cards queue and reset session when deck or study mode changes
+  // Populate cards queue and reset session when deck, cards, or study mode changes
   useEffect(() => {
     const deckCards = cards.filter((c) => c.deckId === deckId);
     const queue = studyAll
@@ -32,12 +32,7 @@ export const StudySessionTab: React.FC<StudySessionTabProps> = ({ deckId, onExit
       : deckCards.filter((c) => new Date(c.nextReviewDate) <= now);
 
     setSessionCards(queue);
-    setCurrentIndex(0);
-    setIsFlipped(false);
-    setIsCompleted(false);
-    setCardsCorrect(0);
-    setTotalReviewed(0);
-  }, [deckId, studyAll]);
+  }, [deckId, cards, studyAll]);
 
   if (!activeDeck) {
     return (
