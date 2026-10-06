@@ -15,16 +15,20 @@ import {
   LogOut, 
   ShieldCheck, 
   Cpu, 
-  ArrowUpRight 
+  ArrowUpRight,
+  AlertTriangle 
 } from "lucide-react";
 
 function AppContent() {
   const { 
     user, 
     authLoading, 
+    authError,
+    clearAuthError,
     profile, 
     cards, 
     loginWithGoogle, 
+    loginWithRedirect,
     logout 
   } = useFlashcards();
 
@@ -90,6 +94,35 @@ function AppContent() {
             </p>
           </div>
 
+          {/* Auth Error Banner */}
+          {authError && (
+            <div className="max-w-2xl mx-auto p-4 bg-amber-50 border border-amber-200 rounded-2xl text-left shadow-sm space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                  <span>Authentication Notice</span>
+                </div>
+                <button 
+                  onClick={clearAuthError}
+                  className="text-amber-600 hover:text-amber-800 text-xs font-bold cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+              <p className="text-xs text-amber-900 leading-relaxed font-sans font-medium">
+                {authError}
+              </p>
+              <div className="pt-1 flex items-center gap-3">
+                <button
+                  onClick={loginWithRedirect}
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-xs"
+                >
+                  Sign In with Redirect Mode
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Core App Features Display */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left max-w-3xl mx-auto">
             <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-3xs space-y-2">
@@ -124,16 +157,25 @@ function AppContent() {
           </div>
 
           {/* Action Trigger button */}
-          <div className="pt-2">
-            <button
-              onClick={loginWithGoogle}
-              className="inline-flex items-center gap-2.5 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer group"
-            >
-              Sign In with Google
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <p className="text-[11px] text-slate-400 mt-3 font-mono">
-              Secure Cloud authentication popup. No credit cards required.
+          <div className="pt-2 flex flex-col items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={loginWithGoogle}
+                className="inline-flex items-center gap-2.5 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer group"
+              >
+                Sign In with Google
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button
+                onClick={loginWithRedirect}
+                className="inline-flex items-center gap-2 px-5 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-sm shadow-xs transition-all cursor-pointer"
+                title="Use page redirect for sign-in if popups are blocked"
+              >
+                Sign In (Redirect)
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1 font-mono">
+              Supports secure popup & redirect sign-in modes. No credit cards required.
             </p>
           </div>
         </main>

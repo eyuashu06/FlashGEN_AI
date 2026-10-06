@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { 
   User, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider, 
   signOut, 
   onAuthStateChanged 
@@ -65,10 +67,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 interface FlashcardContextType {
   user: User | null;
   authLoading: boolean;
+  authError: string | null;
+  clearAuthError: () => void;
   decks: Deck[];
   cards: Card[];
   profile: UserProfile | null;
   loginWithGoogle: () => Promise<void>;
+  loginWithRedirect: () => Promise<void>;
   logout: () => Promise<void>;
   createDeck: (title: string, description: string, sourceName?: string) => Promise<Deck>;
   addCard: (deckId: string, front: string, back: string) => Promise<Card>;
@@ -88,12 +93,34 @@ const FlashcardContext = createContext<FlashcardContextType | undefined>(undefin
 export const FlashcardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [decks, setDecks] = useState<Deck[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Authentication observer
+  const clearAuthError = () => setAuthError(null);
+
+  // Authentication observer and redirect result processor
   useEffect(() => {
+    // Process Google redirect result if returning from signInWithRedirect
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.log("[Firebase Auth] Successfully signed in via redirect:", result.user.email);
+        }
+      })
+      .catch((err: any) => {
+        console.error("[Firebase Auth] Redirect result error:", err);
+        if (err?.code === "auth/unauthorized-domain") {
+          const currentDomain = window.location.hostname;
+          setAuthError(
+            `Unauthorized Domain: "${currentDomain}" is not authorized for Google Sign-In in Firebase Console. Please add "${currentDomain}" under Firebase Console > Authentication > Settings > Authorized domains.`
+          );
+        } else {
+          setAuthError(err?.message || "Failed to complete Google Sign-In redirect.");
+        }
+      });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -181,13 +208,74 @@ export const FlashcardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // Google sign in wrapper
+  // Google sign in wrapper with popup fallback to redirect & domain authorization error handling
   const loginWithGoogle = async () => {
+    setAuthError(null);
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: "select_account",
+    });
+
     try {
       await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Google Authenticate Pop-up Refused:", error);
+    } catch (error: any) {
+      console.warn("[Firebase Auth] signInWithPopup error or blocked:", error);
+      const errorCode = error?.code || "";
+
+      if (errorCode === "auth/unauthorized-domain") {
+        const currentDomain = window.location.hostname;
+        setAuthError(
+          `Unauthorized Domain: "${currentDomain}" is not authorized for Google Sign-In in Firebase Console. Please add "${currentDomain}" under Firebase Console > Authentication > Settings > Authorized domains.`
+        );
+        return;
+      }
+
+      // If popup was blocked, closed, or unsupported, fall back to signInWithRedirect
+      if (
+        errorCode === "auth/popup-blocked" ||
+        errorCode === "auth/popup-closed-by-user" ||
+        errorCode === "auth/cancelled-popup-request" ||
+        errorCode === "auth/operation-not-supported-in-this-environment" ||
+        errorCode.includes("popup")
+      ) {
+        try {
+          console.log("[Firebase Auth] Popup failed/blocked. Attempting fallback to signInWithRedirect...");
+          await signInWithRedirect(auth, provider);
+        } catch (redirectError: any) {
+          console.error("[Firebase Auth] signInWithRedirect error:", redirectError);
+          if (redirectError?.code === "auth/unauthorized-domain") {
+            const currentDomain = window.location.hostname;
+            setAuthError(
+              `Unauthorized Domain: "${currentDomain}" is not authorized for Google Sign-In in Firebase Console. Please add "${currentDomain}" under Firebase Console > Authentication > Settings > Authorized domains.`
+            );
+          } else {
+            setAuthError(redirectError?.message || "Google Sign-In failed via redirect.");
+          }
+        }
+      } else if (errorCode !== "auth/popup-closed-by-user") {
+        setAuthError(error?.message || "Failed to sign in with Google.");
+      }
+    }
+  };
+
+  const loginWithRedirect = async () => {
+    setAuthError(null);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: "select_account",
+    });
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+      console.error("[Firebase Auth] Direct redirect sign-in error:", error);
+      if (error?.code === "auth/unauthorized-domain") {
+        const currentDomain = window.location.hostname;
+        setAuthError(
+          `Unauthorized Domain: "${currentDomain}" is not authorized for Google Sign-In in Firebase Console. Please add "${currentDomain}" under Firebase Console > Authentication > Settings > Authorized domains.`
+        );
+      } else {
+        setAuthError(error?.message || "Google Redirect Sign-In failed.");
+      }
     }
   };
 
@@ -498,10 +586,13 @@ export const FlashcardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       value={{
         user,
         authLoading,
+        authError,
+        clearAuthError,
         decks,
         cards,
         profile,
         loginWithGoogle,
+        loginWithRedirect,
         logout,
         createDeck,
         addCard,
